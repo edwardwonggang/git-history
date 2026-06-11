@@ -5,6 +5,9 @@ import { HistoryProvider } from './historyProvider';
 import { createHistoryTarget } from './pathMapper';
 import { SshGitClient } from './sshGitClient';
 import { ChangedFileTreeItem, CommitTreeItem, HistoryTreeProvider } from './views/historyTreeProvider';
+import { HistoryTarget } from './types';
+
+const STORAGE_KEY_LAST_TARGET = 'gerritHistory.lastTarget';
 
 export function activate(context: vscode.ExtensionContext): void {
   const treeProvider = new HistoryTreeProvider();
@@ -19,23 +22,44 @@ export function activate(context: vscode.ExtensionContext): void {
     treeView,
     vscode.workspace.registerTextDocumentContentProvider('gerrit-history-before', diffProvider),
     vscode.workspace.registerTextDocumentContentProvider('gerrit-history-after', diffProvider),
-    vscode.commands.registerCommand('gerritHistory.showHistory', (uri?: vscode.Uri) => showHistory(uri, treeProvider, treeView)),
-    vscode.commands.registerCommand('gerritHistory.refresh', () => refreshHistory(treeProvider, treeView)),
+    vscode.commands.registerCommand('gerritHistory.showHistory', (uri?: vscode.Uri) => showHistory(uri, treeProvider, treeView, context)),
+    vscode.commands.registerCommand('gerritHistory.refresh', () => refreshHistory(treeProvider, treeView, context)),
     vscode.commands.registerCommand('gerritHistory.openDiff', (item?: ChangedFileTreeItem) => openDiff(item, treeProvider, diffProvider)),
     vscode.commands.registerCommand('gerritHistory.copyCommitHash', (item?: CommitTreeItem) => copyCommitHash(item))
   );
+
+  restoreLastTarget(context, treeProvider, treeView);
 }
 
 export function deactivate(): void {}
 
-async function showHistory(
-  uri: vscode.Uri | undefined,
+async function restoreLastTarget(
+  context: vscode.ExtensionContext,
   treeProvider: HistoryTreeProvider,
   treeView: vscode.TreeView<unknown>
 ): Promise<void> {
+  const saved = context.globalState.get<HistoryTarget>(STORAGE_KEY_LAST_TARGET);
+  if (!saved) {
+    return;
+  }
+
+  try {
+    const target = createHistoryTarget(vscode.Uri.file(saved.selectedFsPath));
+    await loadHistoryForTarget(target, treeProvider, treeView, context);
+  } catch {
+    context.globalState.update(STORAGE_KEY_LAST_TARGET, undefined);
+  }
+}
+
+async function showHistory(
+  uri: vscode.Uri | undefined,
+  treeProvider: HistoryTreeProvider,
+  treeView: vscode.TreeView<unknown>,
+  context: vscode.ExtensionContext
+): Promise<void> {
   try {
     const target = createHistoryTarget(uri);
-    await loadHistoryForTarget(target, treeProvider, treeView);
+    await loadHistoryForTarget(target, treeProvider, treeView, context);
   } catch (error) {
     showError(error);
   }
@@ -43,7 +67,8 @@ async function showHistory(
 
 async function refreshHistory(
   treeProvider: HistoryTreeProvider,
-  treeView: vscode.TreeView<unknown>
+  treeView: vscode.TreeView<unknown>,
+  context: vscode.ExtensionContext
 ): Promise<void> {
   const target = treeProvider.currentTarget;
   if (!target) {
@@ -51,13 +76,14 @@ async function refreshHistory(
     return;
   }
 
-  await loadHistoryForTarget(target, treeProvider, treeView);
+  await loadHistoryForTarget(target, treeProvider, treeView, context);
 }
 
 async function loadHistoryForTarget(
   target: ReturnType<typeof createHistoryTarget>,
   treeProvider: HistoryTreeProvider,
-  treeView: vscode.TreeView<unknown>
+  treeView: vscode.TreeView<unknown>,
+  context: vscode.ExtensionContext
 ): Promise<void> {
   const config = loadConfig();
   const provider = new HistoryProvider(new SshGitClient(config));
@@ -73,6 +99,7 @@ async function loadHistoryForTarget(
 
     treeProvider.setHistory(target, commits, provider);
     treeView.message = commits.length > 0 ? target.displayPath : `No history: ${target.displayPath}`;
+    context.globalState.update(STORAGE_KEY_LAST_TARGET, target);
   } catch (error) {
     const message = toErrorMessage(error);
     treeProvider.setError(message);
