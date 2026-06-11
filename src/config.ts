@@ -20,6 +20,7 @@ export function loadConfig(): ExtensionConfig {
   const includeMergeCommits = readBoolean(config, 'includeMergeCommits', false);
   const gitRef = readString(config, 'gitRef') || 'HEAD';
   const commandTimeoutMs = readNumber(config, 'commandTimeoutMs', 30000);
+  const authorFilter = readStringArray(config, 'authorFilter');
 
   const missing: string[] = [];
   if (!sshHost) {
@@ -57,7 +58,8 @@ export function loadConfig(): ExtensionConfig {
     historyMonths,
     includeMergeCommits,
     gitRef,
-    commandTimeoutMs
+    commandTimeoutMs,
+    authorFilter
   };
 }
 
@@ -74,4 +76,12 @@ function readNumber(config: vscode.WorkspaceConfiguration, key: string, fallback
 function readBoolean(config: vscode.WorkspaceConfiguration, key: string, fallback: boolean): boolean {
   const value = config.get<unknown>(key);
   return typeof value === 'boolean' ? value : fallback;
+}
+
+function readStringArray(config: vscode.WorkspaceConfiguration, key: string): string[] {
+  const value = config.get<unknown>(key);
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map(item => item.trim());
+  }
+  return [];
 }

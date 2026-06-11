@@ -8,6 +8,7 @@ export interface ExtensionConfig {
   readonly includeMergeCommits: boolean;
   readonly gitRef: string;
   readonly commandTimeoutMs: number;
+  readonly authorFilter: string[];
 }
 
 export interface HistoryTarget {

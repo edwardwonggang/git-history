@@ -39,7 +39,16 @@ export class SshGitClient {
 
     const output = await this.runGit(args);
     const commits = parseGitLog(output);
-    return this.config.includeMergeCommits ? commits : commits.filter(commit => !shouldHideMergeCommit(commit));
+    let filteredCommits = this.config.includeMergeCommits ? commits : commits.filter(commit => !shouldHideMergeCommit(commit));
+    if (this.config.authorFilter.length > 0) {
+      filteredCommits = filteredCommits.filter(commit =>
+        this.config.authorFilter.some(keyword =>
+          commit.authorName.toLowerCase().includes(keyword.toLowerCase()) ||
+          commit.authorEmail.toLowerCase().includes(keyword.toLowerCase())
+        )
+      );
+    }
+    return filteredCommits;
   }
 
   async getChangedFiles(commitHash: string, relativePath: string, parentHash?: string): Promise<ChangedFile[]> {

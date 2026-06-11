@@ -143,6 +143,14 @@
           "minimum": 1000,
           "maximum": 300000,
           "description": "Timeout in milliseconds for each remote Git command."
+        },
+        "gerritHistory.authorFilter": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Filter commits by author name or email. Only commits whose author name or email contains any of these keywords will be shown. Leave empty to show all commits."
         }
       }
     }
