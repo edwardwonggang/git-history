@@ -1,0 +1,165 @@
+{
+  "name": "gerrit-history",
+  "displayName": "Gerrit History",
+  "description": "Inspect merged Git/Gerrit history for files and folders in a Linux-hosted repository.",
+  "version": "0.0.2",
+  "publisher": "local",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:gerritHistory.showHistory",
+    "onView:gerritHistory.historyView"
+  ],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "gerritHistory.showHistory",
+        "title": "Show Merged Gerrit History",
+        "category": "Gerrit History",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "gerritHistory.refresh",
+        "title": "Refresh",
+        "category": "Gerrit History",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "gerritHistory.openDiff",
+        "title": "Open Diff",
+        "category": "Gerrit History",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "gerritHistory.copyCommitHash",
+        "title": "Copy Commit Hash",
+        "category": "Gerrit History",
+        "icon": "$(copy)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "gerritHistory.showHistory",
+          "group": "navigation@90",
+          "when": "resourceScheme == file"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "gerritHistory.refresh",
+          "group": "navigation",
+          "when": "view == gerritHistory.historyView"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "gerritHistory.openDiff",
+          "group": "inline",
+          "when": "view == gerritHistory.historyView && viewItem == gerritHistory.changedFile"
+        },
+        {
+          "command": "gerritHistory.copyCommitHash",
+          "group": "inline",
+          "when": "view == gerritHistory.historyView && viewItem == gerritHistory.commit"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gerritHistory",
+          "title": "Gerrit History",
+          "icon": "./resources/history.svg"
+        }
+      ]
+    },
+    "views": {
+      "gerritHistory": [
+        {
+          "id": "gerritHistory.historyView",
+          "name": "History"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Gerrit History",
+      "properties": {
+        "gerritHistory.sshHost": {
+          "type": "string",
+          "default": "",
+          "description": "Linux server host name or IP address used for remote Git queries."
+        },
+        "gerritHistory.sshUser": {
+          "type": "string",
+          "default": "",
+          "description": "SSH user name used for remote Git queries."
+        },
+        "gerritHistory.sshPort": {
+          "type": "number",
+          "default": 22,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "SSH port used for remote Git queries."
+        },
+        "gerritHistory.linuxRepoPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute Linux path of the repository that maps to the opened VS Code workspace root."
+        },
+        "gerritHistory.defaultLimit": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 1,
+          "maximum": 5000,
+          "description": "Maximum number of matching commits to load per query."
+        },
+        "gerritHistory.historyMonths": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 36,
+          "description": "Number of recent months to include in history queries."
+        },
+        "gerritHistory.includeMergeCommits": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include merge commits in history results. Disabled by default because Gerrit submit merge commits can show misleading directory-wide diffs."
+        },
+        "gerritHistory.gitRef": {
+          "type": "string",
+          "default": "HEAD",
+          "description": "Git ref to search, such as HEAD, origin/master, or a branch name."
+        },
+        "gerritHistory.commandTimeoutMs": {
+          "type": "number",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 300000,
+          "description": "Timeout in milliseconds for each remote Git command."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "npm run compile && node --test out/test/*.test.js",
+    "package": "vsce package --allow-missing-repository --out gerrit-history.vsix",
+    "install:local": "node scripts/install-local.js",
+    "reinstall:local": "node scripts/install-local.js",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "^5.6.3"
+  }
+}
